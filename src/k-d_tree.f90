@@ -67,7 +67,6 @@ Module kdtree_mod
             integer :: i, axis, counter
             type(node) :: newNode
 
-
             newNode%level = depth
 
             axis = mod(depth, 3) + 1 !so account for fortran arrays stating at 1...
@@ -75,26 +74,22 @@ Module kdtree_mod
             call get_bbox(trilist, mindim, maxdim)!get bbox for all triangles
             newNode%mindim = mindim
             newNode%maxdim = maxdim
-
             
             !stop tree at depth of 3 and create leafs with data
-            if(depth == 4)then
+            if(depth == 9)then
                 newNode%flag = .true.
                 allocate(newNode%list(size(trilist)))
                 newNode%list = trilist
             else
                 !recurse
                 !divide down middle of bbox
-
                 diff = (maxdim(axis) - mindim(axis)) / 2.
                 up = maxdim(axis)
                 low = mindim(axis)
                 mid = up - diff
 
-               ! if(depth == 1)then
-               !      print*,axis
-               !      print*,maxdim(axis),mindim(axis),mid,(maxdim(axis) - mindim(axis)),diff
-               !  end if
+                ! print*,low,mid,up,depth
+
                 !the section is ugly as fuck
                 !gets list of triangles that belong either to left or right
                 allocate(left(size(trilist)), right(size(trilist)))
@@ -103,11 +98,16 @@ Module kdtree_mod
 
                 do i = 1, size(trilist)
                     call get_bbox(trilist(i:i), mindim, maxdim)
-                    if(maxdim(axis) > mid)then
+                    if(mindim(axis) >= mid)then
                         !right
                         right(i) = trilist(i)
                     else
-                        left(i) = trilist(i)
+                        if(maxdim(axis) >= mid)then
+                            right(i) = trilist(i)
+                            left(i) = trilist(i)
+                        else
+                            left(i) = trilist(i)
+                        end if
                     end if
                 end do
 
@@ -159,14 +159,23 @@ Module kdtree_mod
 
             real :: tmin, tmax, tymin, tymax, tzmin, tzmax
 
-            tmin = (mindim(1) - origin%x) / ray%x
-            tmax = (maxdim(1) - origin%x) / ray%x
+            if(1./ray%x >= 0)then
+                tmin = (mindim(1) - origin%x) / ray%x
+                tmax = (maxdim(1) - origin%x) / ray%x
+            else
+                tmin = (maxdim(2) - origin%y) / ray%y
+                tmax = (mindim(2) - origin%y) / ray%y
+            end if
 
             if(tmin > tmax)call swap(tmin, tmax)
 
-            tymin = (mindim(2) - origin%y) / ray%y
-            tymax = (maxdim(2) - origin%y) / ray%y
-
+            if(1./ray%y >= 0)then
+                tymin = (mindim(2) - origin%y) / ray%y
+                tymax = (maxdim(2) - origin%y) / ray%y
+            else
+                tymin = (maxdim(2) - origin%y) / ray%y
+                tymax = (mindim(2) - origin%y) / ray%y
+            end if
             if(tymin > tymax)call swap(tymin, tymax)
 
             if((tmin > tymax) .or. (tymin > tmax))then
@@ -177,8 +186,13 @@ Module kdtree_mod
             if(tymin > tmin)tmin = tymin
             if(tymax < tmax)tmax = tymax
 
-            tzmin = (mindim(3) - origin%z) / ray%z
-            tzmax = (maxdim(3) - origin%z) / ray%z
+            if(1./ray%z >= 0)then
+                tzmin = (mindim(3) - origin%z) / ray%z
+                tzmax = (maxdim(3) - origin%z) / ray%z
+            else
+                tzmin = (maxdim(3) - origin%z) / ray%z
+                tzmax = (mindim(3) - origin%z) / ray%z
+            end if
 
             if(tzmin > tzmax)call swap(tzmin, tzmax)
 
@@ -190,9 +204,13 @@ Module kdtree_mod
             if(tzmin > tmin)tmin = tzmin
             if(tzmax < tmax)tmax = tzmax
 
-            intersect_bbox = .true.
-            return
-
+            if(tmax > 0)then
+                intersect_bbox = .true.
+                return
+            else
+                intersect_bbox = .false.
+                return
+            end if
         end function intersect_bbox
 
 

@@ -1,6 +1,6 @@
 ifeq ($(FCOMP),mpifort)
-FCFLAGS = -O2 -cpp -freal-4-real-8 -march=native -ftree-vectorize -flto -mavx -funroll-loops
-FCDEBUG = -g -fbacktrace -fcheck=all -fbounds-check -ffpe-trap=invalid,overflow,underflow,denormal
+FCFLAGS = -cpp -freal-4-real-8 -march=native -flto
+FCDEBUG = -g -fbacktrace -fcheck=all -fbounds-check -ffpe-trap=invalid,overflow,underflow,denormal,zero
 FCBUILD = -Wall -Wextra -pedantic
 else ifeq ($(FCOMP),mpiifort)
 FCFLAGS = -O2 -cpp -Dintel -r8 -xHOST -Dintel -ipo -assume byterecl

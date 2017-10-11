@@ -7,16 +7,15 @@ private
 public :: writer
 
 interface write_binary
-    module procedure write_binaryR2
+    ! module procedure write_binaryR2
     module procedure write_binaryR3
     module procedure write_binaryR4
-    module procedure write_binaryI3
+    ! module procedure write_binaryI3
 end interface
 
 CONTAINS
     subroutine writer(nphotons, numproc, file)
 
-        use constants,       only : fileplace, nxg, nyg, nzg, xmax, ymax, zmax
         use iarray,          only : jmeaninGLOBAL, jmeanoutGLOBAL
         use utils,           only : str
 
@@ -25,7 +24,6 @@ CONTAINS
         integer,      intent(IN) :: nphotons
         character(*), intent(IN) :: file
         integer :: numproc
-        integer :: u, i
         character(len=256) :: filename
 
         filename = 'jmean/jmeanin-'//trim(file)//'.raw'
@@ -63,23 +61,25 @@ CONTAINS
 
 
     end subroutine write_bov
-    subroutine write_binaryR2(filename, array)
 
-        use constants, only : fileplace
 
-        implicit none
+    ! subroutine write_binaryR2(filename, array)
 
-        character(len=*), intent(IN) :: filename
-        real,             intent(IN) :: array(:,:)
+    !     use constants, only : fileplace
+
+    !     implicit none
+
+    !     character(len=*), intent(IN) :: filename
+    !     real,             intent(IN) :: array(:,:)
         
-        integer(kind=8) :: u, i
+    !     integer(kind=8) :: u, i
 
-        inquire(iolength=i)array
-        open(newunit=u,file=trim(fileplace)//trim(filename),access='stream',status='REPLACE',form='unformatted')
-        write(u) array
-        close(u)
+    !     inquire(iolength=i)array
+    !     open(newunit=u,file=trim(fileplace)//trim(filename),access='stream',status='REPLACE',form='unformatted')
+    !     write(u) array
+    !     close(u)
 
-    end subroutine write_binaryR2
+    ! end subroutine write_binaryR2
 
 
     subroutine write_binaryR3(filename, array)
@@ -121,23 +121,23 @@ CONTAINS
     end subroutine write_binaryR4
 
 
-    subroutine write_binaryI3(filename, array)
+    ! subroutine write_binaryI3(filename, array)
 
-        use constants, only : fileplace
+    !     use constants, only : fileplace
 
-        implicit none
+    !     implicit none
 
-        character(len=*), intent(IN) :: filename
-        integer,          intent(IN) :: array(:,:,:)
+    !     character(len=*), intent(IN) :: filename
+    !     integer,          intent(IN) :: array(:,:,:)
         
-        integer :: u, i
+    !     integer :: u, i
 
-        inquire(iolength=i)array
-        open(newunit=u,file=trim(fileplace)//trim(filename),access='direct',status='REPLACE',form='unformatted',&
-        recl=i)
-        write(u,rec=1) array
-        close(u)
+    !     inquire(iolength=i)array
+    !     open(newunit=u,file=trim(fileplace)//trim(filename),access='direct',status='REPLACE',form='unformatted',&
+    !     recl=i)
+    !     write(u,rec=1) array
+    !     close(u)
 
-    end subroutine write_binaryI3
+    ! end subroutine write_binaryI3
 
 end MODULE writer_mod

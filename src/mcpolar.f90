@@ -59,7 +59,7 @@ program mcpolar
     meshname = adjustl(meshname)
 
     meshfile = trim(meshname)
-    call read_obj(trim(meshfile), tarray, id, .FALSE.)
+    call read_obj(trim(meshfile), tarray, id, .true.)
 
     allocate(listtri(size(tarray)))
 
@@ -77,78 +77,7 @@ program mcpolar
     call write_bbox(kdtree, u)
     close(u)
 
-
-    stop
-    write(u,*) kdtree%mindim
-    write(u,*) kdtree%maxdim(1),kdtree%mindim(2),kdtree%mindim(3)
-    write(u,*) kdtree%maxdim(1),kdtree%maxdim(2),kdtree%mindim(3)
-    write(u,*) kdtree%mindim(1),kdtree%maxdim(2),kdtree%mindim(3)
-    write(u,*) kdtree%mindim
-    write(u,*) kdtree%mindim(1),kdtree%mindim(2),kdtree%maxdim(3)
-    write(u,*) kdtree%maxdim(1),kdtree%mindim(2),kdtree%maxdim(3)
-    write(u,*) kdtree%maxdim(1),kdtree%maxdim(2),kdtree%maxdim(3)
-    write(u,*) kdtree%mindim(1),kdtree%maxdim(2),kdtree%maxdim(3)
-    write(u,*) kdtree%mindim(1),kdtree%mindim(2),kdtree%maxdim(3)
-
-    write(u,*) ''
-    write(u,*) ''
-    write(u,*) kdtree%ln%mindim
-    write(u,*) kdtree%ln%maxdim(1),kdtree%ln%mindim(2),kdtree%ln%mindim(3)
-    write(u,*) kdtree%ln%maxdim(1),kdtree%ln%maxdim(2),kdtree%ln%mindim(3)
-    write(u,*) kdtree%ln%mindim(1),kdtree%ln%maxdim(2),kdtree%ln%mindim(3)
-    write(u,*) kdtree%ln%mindim
-    write(u,*) kdtree%ln%mindim(1),kdtree%ln%mindim(2),kdtree%ln%maxdim(3)
-    write(u,*) kdtree%ln%maxdim(1),kdtree%ln%mindim(2),kdtree%ln%maxdim(3)
-    write(u,*) kdtree%ln%maxdim(1),kdtree%ln%maxdim(2),kdtree%ln%maxdim(3)
-    write(u,*) kdtree%ln%mindim(1),kdtree%ln%maxdim(2),kdtree%ln%maxdim(3)
-    write(u,*) kdtree%ln%mindim(1),kdtree%ln%mindim(2),kdtree%ln%maxdim(3)
-
-    write(u,*) ''
-    write(u,*) ''
-    write(u,*) kdtree%ln%ln%mindim
-    write(u,*) kdtree%ln%ln%maxdim(1),kdtree%ln%ln%mindim(2),kdtree%ln%ln%mindim(3)
-    write(u,*) kdtree%ln%ln%maxdim(1),kdtree%ln%ln%maxdim(2),kdtree%ln%ln%mindim(3)
-    write(u,*) kdtree%ln%ln%mindim(1),kdtree%ln%ln%maxdim(2),kdtree%ln%ln%mindim(3)
-    write(u,*) kdtree%ln%ln%mindim
-    write(u,*) kdtree%ln%ln%mindim(1),kdtree%ln%ln%mindim(2),kdtree%ln%ln%maxdim(3)
-    write(u,*) kdtree%ln%ln%maxdim(1),kdtree%ln%ln%mindim(2),kdtree%ln%ln%maxdim(3)
-    write(u,*) kdtree%ln%ln%maxdim(1),kdtree%ln%ln%maxdim(2),kdtree%ln%ln%maxdim(3)
-    write(u,*) kdtree%ln%ln%mindim(1),kdtree%ln%ln%maxdim(2),kdtree%ln%ln%maxdim(3)
-    write(u,*) kdtree%ln%ln%mindim(1),kdtree%ln%ln%mindim(2),kdtree%ln%ln%maxdim(3)
-
-    write(u,*) ''
-    write(u,*) ''
-    write(u,*) kdtree%ln%rn%mindim
-    write(u,*) kdtree%ln%rn%maxdim(1),kdtree%ln%rn%mindim(2),kdtree%ln%rn%mindim(3)
-    write(u,*) kdtree%ln%rn%maxdim(1),kdtree%ln%rn%maxdim(2),kdtree%ln%rn%mindim(3)
-    write(u,*) kdtree%ln%rn%mindim(1),kdtree%ln%rn%maxdim(2),kdtree%ln%rn%mindim(3)
-    write(u,*) kdtree%ln%rn%mindim
-    write(u,*) kdtree%ln%rn%mindim(1),kdtree%ln%rn%mindim(2),kdtree%ln%rn%maxdim(3)
-    write(u,*) kdtree%ln%rn%maxdim(1),kdtree%ln%rn%mindim(2),kdtree%ln%rn%maxdim(3)
-    write(u,*) kdtree%ln%rn%maxdim(1),kdtree%ln%rn%maxdim(2),kdtree%ln%rn%maxdim(3)
-    write(u,*) kdtree%ln%rn%mindim(1),kdtree%ln%rn%maxdim(2),kdtree%ln%rn%maxdim(3)
-    write(u,*) kdtree%ln%rn%mindim(1),kdtree%ln%rn%mindim(2),kdtree%ln%rn%maxdim(3)
-
-
-
-
-
-    write(u,*) ''
-    write(u,*) ''
-    write(u,*) kdtree%rn%mindim
-    write(u,*) kdtree%rn%maxdim(1),kdtree%rn%mindim(2),kdtree%rn%mindim(3)
-    write(u,*) kdtree%rn%maxdim(1),kdtree%rn%maxdim(2),kdtree%rn%mindim(3)
-    write(u,*) kdtree%rn%mindim(1),kdtree%rn%maxdim(2),kdtree%rn%mindim(3)
-    write(u,*) kdtree%rn%mindim
-    write(u,*) kdtree%rn%mindim(1),kdtree%rn%mindim(2),kdtree%rn%maxdim(3)
-    write(u,*) kdtree%rn%maxdim(1),kdtree%rn%mindim(2),kdtree%rn%maxdim(3)
-    write(u,*) kdtree%rn%maxdim(1),kdtree%rn%maxdim(2),kdtree%rn%maxdim(3)
-    write(u,*) kdtree%rn%mindim(1),kdtree%rn%maxdim(2),kdtree%rn%maxdim(3)
-    write(u,*) kdtree%rn%mindim(1),kdtree%rn%mindim(2),kdtree%rn%maxdim(3)
-
-
-close(u)
-stop
+    ! stop
 
     meshname = trim(meshname(:len_trim(meshname)-4))
 

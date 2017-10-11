@@ -28,7 +28,6 @@ CONTAINS
         real                   :: tau, taurun, taucell, xcur, ycur, zcur, d, dcell, ran2, dmesh, kappa, n1, n2
         integer                :: celli, cellj, cellk, tri
         logical                :: dir(3), in, rflag
-        real :: start, finish
         type(vector) :: v1, v2, v3, p, bary, intrpNormal, incd
 
         xcur = xp + xmax
@@ -44,16 +43,12 @@ CONTAINS
         dir = (/.FALSE., .FALSE., .FALSE./)
 
         tau = -log(ran2(iseed))
-        call cpu_time(start)
-        do tri = 1, 100000
-        call get_mesh_dist_tree(kdtree, xcur, ycur, zcur, dmesh)
+        dmesh = huge(1.)
+        call get_mesh_dist_tree(kdtree, xcur, ycur, zcur, dmesh, in)
+        print*,dmesh,in
         ! call get_mesh_dist(xcur, ycur, zcur, dmesh, in, tri)
         ! print*,tri
-        end do
-        call cpu_time(finish)
-print*,finish-start
-            stop
-
+        ! stop
 
         if(in)then
             kappa = meshkappa
@@ -221,7 +216,7 @@ print*,finish-start
     end subroutine tauint1
    
 
-    recursive subroutine get_mesh_dist_tree(element, x, y, z, distance)
+    recursive subroutine get_mesh_dist_tree(element, x, y, z, distance, inmesh)
 
         use kdtree_mod,  only : intersect_bbox, node
         use photon_vars, only : nxp, nyp, nzp
@@ -232,36 +227,125 @@ print*,finish-start
 
         type(node), intent(IN) :: element
         real, intent(IN) :: x, y, z
-        real, intent(OUT) :: distance
-        logical :: inmesh
+        real, intent(INOUT) :: distance
+        logical,intent(INOUT) :: inmesh
         integer :: tri
 
         type(vector) :: ray, origin
+        logical :: flag
 
+        if(distance < huge(1.))return
         ray    = vector(nxp, nyp, nzp)
         origin = vector(x-xmax, y-ymax, z-zmax)
+        flag = intersect_bbox(origin, ray, element%mindim, element%maxdim)
 
-        if(intersect_bbox(origin, ray, element%mindim, element%maxdim))then
-            if(.not. element%flag)then
-                call get_mesh_dist_tree(element%ln, x, y, z, distance)
-                call get_mesh_dist_tree(element%rn, x, y, z, distance)
+        if(flag)then
+            if(associated(element%rn) .or. associated(element%ln))then
+                call get_mesh_dist_tree(element%ln, x, y, z, distance, inmesh)
+                call get_mesh_dist_tree(element%rn, x, y, z, distance, inmesh)
             else
                 !hit leaf
-                ! call get_mesh_dist(element%list, x, y, z, distance, inmesh, tri)
-                ! print*,tri,distance
-                ! stop
+                call get_mesh_dist(element%list, x, y, z, distance, inmesh, tri)
+                if(distance < huge(1.))then
+                    inmesh = .false.
+                    return
+                end if
             end if
         else
             distance = huge(1.)
+            inmesh = .false.
             return
         end if
-
     end subroutine get_mesh_dist_tree
 
 
+    subroutine get_mesh_dist(list, x, y, z, distance, inmesh, tri)
+
+        use triangleclass
+        use types
+        use photon_vars, only : nxp, nyp, nzp
+        use iarray,      only : tarray
+        use constants,   only : xmax, ymax, zmax
+
+        implicit none
+
+        integer, intent(IN)  :: list(:)
+        real,    intent(IN)  :: x, y, z
+        real,    intent(OUT) :: distance
+        logical, intent(OUT) :: inmesh
+        integer, intent(OUT) :: tri
+
+        real         :: eps=1d-10, det, invDet, u, v, t, min
+        type(vector) :: v0, v1, v2, e1, e2, pvec, s, q, ray, origin
+        integer      :: i, counter, loopdx
+        logical      :: flag
+
+        counter = 0
+        ray    = vector(nxp, nyp, nzp)
+        origin = vector(x-xmax, y-ymax, z-zmax)
+
+        flag = .false.
+        min  = huge(1.)
+
+        ! print*,list
+        ! stop
+        loopdx = 0
+        do i = 1, size(list)
+            ! v0 = tarray(i)%vert(1) 
+            ! v1 = tarray(i)%vert(2) 
+            ! v2 = tarray(i)%vert(3) 
+
+            v0 = tarray(list(i))%vert(1) 
+            v1 = tarray(list(i))%vert(2) 
+            v2 = tarray(list(i))%vert(3) 
+
+            e1 = v1 - v0
+            e2 = v2 - v0
+            pvec = ray .cross. e2
+            det = e1 .dot. pvec 
+
+            if(abs(det) < eps)cycle
+            invDet = 1./det
+            s = origin - v0
+            u = invDet * (s .dot. pvec)
+            if(u < 0. .or. u > 1.)cycle
+            q = s .cross. e1
+            v = invDet * (ray .dot. q)
+            if(v < 0.0 .or. (u + v) > 1.)cycle
+            t = invDet * (e2 .dot. q)
+
+            if(t > eps)then
+                counter = counter + 1
+                if(t < min)then
+                    ! print*,i
+                    loopdx = i
+                    min = t
+                end if
+                flag = .true.
+            end if
+        end do
+        distance = min
+
+        if(mod(real(counter), 2.) == 0)then
+            print*,counter,'f'
+            inmesh = .false.
+        else
+            print*,counter,'t'
+            inmesh = .true.
+        end if
+
+        if(.not. flag)then
+            distance = huge(1.)
+            inmesh = .false.
+            tri = 0
+        else
+            tri = list(loopdx)
+        end if
+        ! tri = loopdx
+    end subroutine get_mesh_dist
 
 
-    logical function in_mesh(cellx, celly, cellz, x, y, z)
+   logical function in_mesh(cellx, celly, cellz, x, y, z)
 
         use triangleclass
         use types
@@ -314,83 +398,6 @@ print*,finish-start
             in_mesh = .true.
         end if
     end function in_mesh
-
-    subroutine get_mesh_dist(x, y, z, distance, inmesh, tri)
-
-        use triangleclass
-        use types
-        use photon_vars, only : nxp, nyp, nzp
-        use iarray,      only : tarray
-        use constants,   only : xmax, ymax, zmax
-
-        implicit none
-
-        ! integer, intent(IN)  :: list(:)
-        real,    intent(IN)  :: x, y, z
-        real,    intent(OUT) :: distance
-        logical, intent(OUT) :: inmesh
-        integer, intent(OUT) :: tri
-
-        real         :: eps=1d-10, det, invDet, u, v, t, min
-        type(vector) :: v0, v1, v2, e1, e2, pvec, s, q, ray, origin
-        integer      :: i, counter, loopdx
-        logical      :: flag
-
-        counter = 0
-        ray    = vector(nxp, nyp, nzp)
-        origin = vector(x-xmax, y-ymax, z-zmax)
-
-        flag = .false.
-        min  = huge(1.)
-
-        ! print*,list
-        ! stop
-        loopdx=0
-        do i = 1, size(tarray)
-            v0 = tarray(i)%vert(1) 
-            v1 = tarray(i)%vert(2) 
-            v2 = tarray(i)%vert(3) 
-
-            e1 = v1 - v0
-            e2 = v2 - v0
-            pvec = ray .cross. e2
-            det = e1 .dot. pvec 
-
-            if(abs(det) < eps)cycle
-            invDet = 1./det
-            s = origin - v0
-            u = invDet * (s .dot. pvec)
-            if(u < 0. .or. u > 1.)cycle
-            q = s .cross. e1
-            v = invDet * (ray .dot. q)
-            if(v < 0.0 .or. (u + v) > 1.)cycle
-            t = invDet * (e2 .dot. q)
-
-            if(t > eps)then
-                counter = counter + 1
-                if(t < min)then
-                    ! print*,i
-                    loopdx = i
-                    min = t
-                end if
-                flag = .true.
-            end if
-        end do
-        distance = min
-
-        if(mod(real(counter), 2.) == 0)then
-            inmesh = .false.
-        else
-            inmesh = .true.
-        end if
-
-        if(.not. flag)then
-            distance = huge(1.)
-            inmesh = .false.
-        end if
-
-        tri = loopdx
-    end subroutine get_mesh_dist
 
 
     real function wall_dist(celli, cellj, cellk, xcur, ycur, zcur, dir)
