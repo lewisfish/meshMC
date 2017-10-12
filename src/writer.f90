@@ -48,7 +48,7 @@ CONTAINS
 
         integer :: u
 
-        open(newunit=u, file=trim(fileplace)//'jmean/'//trim(name)//suffix//'.bov')
+        open(newunit=u, file=trim(name)//suffix//'.bov')
         write(u, *)"DATA_FILE: "//trim(filename)
         write(u, *)"DATA_SIZE: "//str(nxg)//' '//str(nyg)//' '//str(nzg)
         write(u, *)"DATA_FORMAT: DOUBLE"

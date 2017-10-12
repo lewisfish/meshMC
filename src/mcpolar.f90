@@ -59,7 +59,7 @@ program mcpolar
     meshname = adjustl(meshname)
 
     meshfile = trim(meshname)
-    call read_obj(trim(meshfile), tarray, id, .true.)
+    call read_obj(trim(meshfile), tarray, id, .FALSE.)
 
     allocate(listtri(size(tarray)))
 

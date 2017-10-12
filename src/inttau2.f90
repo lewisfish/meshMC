@@ -3,7 +3,7 @@ module inttau2
    implicit none
    
    private
-   public :: tauint1!, find
+   public :: tauint1
 
 CONTAINS
 
@@ -11,7 +11,7 @@ CONTAINS
     !optical depth integration subroutine
     !
     !
-        use constants,   only : xmax, ymax, zmax
+        use constants,   only : xmax, ymax, zmax, in
         use photon_vars, only : xp, yp, zp, nxp, nyp, nzp, sint, cost, sinp, cosp, phi
         use iarray,      only : jmeanin, jmeanout, tarray
         use opt_prop,    only : meshkappa, mediumkappa, meshalbedo, mediumalbedo, albedo
@@ -27,7 +27,7 @@ CONTAINS
 
         real                   :: tau, taurun, taucell, xcur, ycur, zcur, d, dcell, ran2, dmesh, kappa, n1, n2
         integer                :: celli, cellj, cellk, tri
-        logical                :: dir(3), in, rflag
+        logical                :: dir(3), rflag
         type(vector) :: v1, v2, v3, p, bary, intrpNormal, incd
 
         xcur = xp + xmax
@@ -44,11 +44,10 @@ CONTAINS
 
         tau = -log(ran2(iseed))
         dmesh = huge(1.)
-        call get_mesh_dist_tree(kdtree, xcur, ycur, zcur, dmesh, in)
-        print*,dmesh,in
-        ! call get_mesh_dist(xcur, ycur, zcur, dmesh, in, tri)
-        ! print*,tri
-        ! stop
+        call get_mesh_dist_tree(kdtree, xcur, ycur, zcur, dmesh, tri)
+
+        !make sure photon is actually in mesh
+        if((in) .and. (dmesh >= huge(1.)) )in = .not.in
 
         if(in)then
             kappa = meshkappa
@@ -63,63 +62,28 @@ CONTAINS
             dcell = wall_dist(celli, cellj, cellk, xcur, ycur, zcur, dir)
             taucell = dcell * kappa
             if(taurun + taucell < tau)then
-                taurun = taurun + taucell
 
                 if(d + dcell >= dmesh)then
                     dcell = dmesh - d
+                    dcell = dcell + delta
                     d = d + dcell
-                    call update_pos(xcur, ycur, zcur, celli, cellj, cellk, dcell, .FALSE., dir, delta)
+                    taucell = dcell*kappa 
+                    taurun = taurun + taucell
 
-                    ! interpolatedNormal = bary[0] * p1_normal + bary[2] * p2_normal + bary[1] * p3_normal;
+                    call update_pos(xcur, ycur, zcur, celli, cellj, cellk, dcell, .TRUE., dir, delta)
 
-                    ! v1 = tarray(tri)%vert(1)
-                    ! v2 = tarray(tri)%vert(2)
-                    ! v3 = tarray(tri)%vert(3)
-
-                    ! p = vector(xcur, ycur, zcur)
-
-                    ! bary = barycentric(v1, v2, v3, p)
-
-                    ! intrpNormal = bary%x * tarray(tri)%norms(1) + bary%y * tarray(tri)%norms(2) + bary%z * tarray(tri)%norms(3) 
-                    ! incd = vector(nxp, nyp, nzp)
-
-                    ! if(in)then
-                    !     intrpNormal = vector(-intrpNormal%x, -intrpNormal%y, -intrpNormal%z)
-                    !     n1 = 1.52
-                    !     n2 = 1.0
-                    ! else
-                    !     n1 = 1.0
-                    !     n2 = 1.52
-                    ! end if
-                    ! call reflect_refract(incd, intrpNormal, n1, n2, iseed, rflag)
-
-                    ! ! print*,nxp,nyp,nzp
-
-                    ! incd = normal(incd)
-                    ! nxp = incd%x
-                    ! nyp = incd%y
-                    ! nzp = incd%z
-
-                    ! phi = atan2(nyp, nxp)
-                    ! sinp = sin(phi)
-                    ! cosp = cos(phi)
-
-                    ! cost = nzp
-                    ! sint = sqrt(1.-cost*cost)
-                    ! ! print*,nxp,nyp,nzp
-                    ! ! stop
-                    ! if(.not.rflag)then
-                        if(in)then
-                            in = .false.
-                            kappa = mediumkappa
-                            albedo = mediumalbedo
-                        else
-                            in = .true.
-                            kappa = meshkappa
-                            albedo = meshalbedo
-                        end if
-                    ! end if
+                    if(in)then
+                        in = .not. in
+                        kappa = mediumkappa
+                        albedo = mediumalbedo
+                    else
+                        in = .not. in
+                        kappa = meshkappa
+                        albedo = meshalbedo
+                    end if
+                    exit
                 else
+                    taurun = taurun + taucell
                     d = d + dcell
                     call update_pos(xcur, ycur, zcur, celli, cellj, cellk, dcell, .TRUE., dir, delta)
                 end if
@@ -138,55 +102,20 @@ CONTAINS
                 if(d + dcell >= dmesh)then
                     dcell = dmesh - d
                     d = d + dcell
-                    call update_pos(xcur, ycur, zcur, celli, cellj, cellk, dcell, .FALSE., dir, delta)
+                    taucell = dcell*kappa 
+                    taurun = taurun + taucell
+                    call update_pos(xcur, ycur, zcur, celli, cellj, cellk, dcell, .TRUE., dir, delta)
                
-                    ! v1 = tarray(tri)%vert(1)
-                    ! v2 = tarray(tri)%vert(2)
-                    ! v3 = tarray(tri)%vert(3)
+                    if(in)then
+                        in = .not. in
+                        kappa = mediumkappa
+                        albedo = mediumalbedo
+                    else
+                        in = .not. in
+                        kappa = meshkappa
+                        albedo = meshalbedo
+                    end if
 
-                    ! p = vector(xcur, ycur, zcur)
-
-                    ! bary = barycentric(v1, v2, v3, p)
-
-                    ! intrpNormal = bary%x * tarray(tri)%norms(1) + bary%y * tarray(tri)%norms(2) + bary%z * tarray(tri)%norms(3) 
-                    ! incd = vector(nxp, nyp, nzp)
-
-                    ! if(in)then
-                    !     intrpNormal = vector(-intrpNormal%x, -intrpNormal%y, -intrpNormal%z)
-                    !     n1 = 1.52
-                    !     n2 = 1.0
-                    ! else
-                    !     n1 = 1.0
-                    !     n2 = 1.52
-                    ! end if
-                    ! call reflect_refract(incd, intrpNormal, n1, n2, iseed, rflag)
-
-                    ! ! print*,nxp,nyp,nzp
-
-                    ! incd = normal(incd)
-                    ! nxp = incd%x
-                    ! nyp = incd%y
-                    ! nzp = incd%z
-
-                    ! phi = atan2(nyp, nxp)
-                    ! sinp = sin(phi)
-                    ! cosp = cos(phi)
-
-                    ! cost = nzp
-                    ! sint = sqrt(1.-cost*cost)
-                    ! ! print*,nxp,nyp,nzp
-                    ! ! stop
-                    ! if(.not.rflag)then
-                        if(in)then
-                            in = .false.
-                            kappa = mediumkappa
-                            albedo = mediumalbedo
-                        else
-                            in = .true.
-                            kappa = meshkappa
-                            albedo = meshalbedo
-                        end if
-                    ! end if
                     exit
                 else
                     d = d + dcell
@@ -216,63 +145,62 @@ CONTAINS
     end subroutine tauint1
    
 
-    recursive subroutine get_mesh_dist_tree(element, x, y, z, distance, inmesh)
+    recursive subroutine get_mesh_dist_tree(element, x, y, z, maxval, tri)
 
         use kdtree_mod,  only : intersect_bbox, node
         use photon_vars, only : nxp, nyp, nzp
-        use constants,   only : xmax, ymax, zmax
+        use constants,   only : xmax, ymax, zmax, in
         use types,       only : vector
 
         implicit none
 
-        type(node), intent(IN) :: element
-        real, intent(IN) :: x, y, z
-        real, intent(INOUT) :: distance
-        logical,intent(INOUT) :: inmesh
-        integer :: tri
-
+        type(node), intent(IN)    :: element
+        real,       intent(IN)    :: x, y, z
+        real :: distance
+        
+        integer      :: tri
         type(vector) :: ray, origin
-        logical :: flag
+        logical      :: flag
+        real :: maxval
 
-        if(distance < huge(1.))return
+        if(element%level == 0)maxval=huge(1.)
+
         ray    = vector(nxp, nyp, nzp)
         origin = vector(x-xmax, y-ymax, z-zmax)
-        flag = intersect_bbox(origin, ray, element%mindim, element%maxdim)
 
+        flag = intersect_bbox(origin, ray, element%mindim, element%maxdim)
         if(flag)then
             if(associated(element%rn) .or. associated(element%ln))then
-                call get_mesh_dist_tree(element%ln, x, y, z, distance, inmesh)
-                call get_mesh_dist_tree(element%rn, x, y, z, distance, inmesh)
+                call get_mesh_dist_tree(element%ln, x, y, z, maxval, tri)
+                call get_mesh_dist_tree(element%rn, x, y, z, maxval, tri)
             else
                 !hit leaf
-                call get_mesh_dist(element%list, x, y, z, distance, inmesh, tri)
-                if(distance < huge(1.))then
-                    inmesh = .false.
+                call ray_triangle_intersection(element%list, x, y, z, distance, tri)
+                if(distance < maxval)then
+                    maxval = distance
                     return
                 end if
             end if
         else
             distance = huge(1.)
-            inmesh = .false.
             return
         end if
     end subroutine get_mesh_dist_tree
 
 
-    subroutine get_mesh_dist(list, x, y, z, distance, inmesh, tri)
+    subroutine ray_triangle_intersection(list, x, y, z, distance, tri)
 
         use triangleclass
         use types
         use photon_vars, only : nxp, nyp, nzp
         use iarray,      only : tarray
-        use constants,   only : xmax, ymax, zmax
+        use constants,   only : xmax, ymax, zmax, in
 
         implicit none
 
         integer, intent(IN)  :: list(:)
         real,    intent(IN)  :: x, y, z
         real,    intent(OUT) :: distance
-        logical, intent(OUT) :: inmesh
         integer, intent(OUT) :: tri
 
         real         :: eps=1d-10, det, invDet, u, v, t, min
@@ -287,8 +215,6 @@ CONTAINS
         flag = .false.
         min  = huge(1.)
 
-        ! print*,list
-        ! stop
         loopdx = 0
         do i = 1, size(list)
             ! v0 = tarray(i)%vert(1) 
@@ -317,7 +243,6 @@ CONTAINS
             if(t > eps)then
                 counter = counter + 1
                 if(t < min)then
-                    ! print*,i
                     loopdx = i
                     min = t
                 end if
@@ -326,78 +251,23 @@ CONTAINS
         end do
         distance = min
 
-        if(mod(real(counter), 2.) == 0)then
-            print*,counter,'f'
-            inmesh = .false.
-        else
-            print*,counter,'t'
-            inmesh = .true.
-        end if
+        ! if(mod(real(counter), 2.) == 0)then
+        !     ! print*,counter,'f'
+        !     in = .false.
+        ! else
+        !     ! print*,counter,'t'
+        !     in = .true.
+        ! end if
 
         if(.not. flag)then
             distance = huge(1.)
-            inmesh = .false.
+            ! in = .false.
             tri = 0
         else
             tri = list(loopdx)
         end if
         ! tri = loopdx
-    end subroutine get_mesh_dist
-
-
-   logical function in_mesh(cellx, celly, cellz, x, y, z)
-
-        use triangleclass
-        use types
-        use photon_vars, only : nxp, nyp, nzp
-        use iarray,      only : tarray
-        use constants,   only : xmax, ymax, zmax
-
-        implicit none
-
-        real,    intent(IN)  :: x, y, z
-        integer, intent(IN)  :: cellx, celly, cellz
-
-        real         :: eps=1d-10, det, invDet, u, v, t
-        type(vector) :: v0, v1, v2, e1, e2, pvec, s, q, ray, origin
-        integer      :: i, counter
-
-        counter = 0
-        ray    = vector(nxp, nyp, nzp)
-        origin = vector(x-xmax, y-ymax, z-zmax)
-
-
-        do i = 1, size(tarray)
-            v0 = tarray(i)%vert(1) 
-            v1 = tarray(i)%vert(2) 
-            v2 = tarray(i)%vert(3) 
-
-            e1 = v1 - v0
-            e2 = v2 - v0
-            pvec = ray .cross. e2
-            det = e1 .dot. pvec 
-
-            if(abs(det) < eps)cycle
-            invDet = 1./det
-            s = origin - v0
-            u = invDet * (s .dot. pvec)
-            if(u < 0. .or. u > 1.)cycle
-            q = s .cross. e1
-            v = invDet * (ray .dot. q)
-            if(v < 0.0 .or. (u + v) > 1.)cycle
-            t = invDet * (e2 .dot. q)
-
-            if(t > eps)then
-                counter = counter + 1
-            end if
-        end do
-
-        if(mod(real(counter), 2.) == 0)then
-            in_mesh = .false.
-        else
-            in_mesh = .true.
-        end if
-    end function in_mesh
+    end subroutine ray_triangle_intersection
 
 
     real function wall_dist(celli, cellj, cellk, xcur, ycur, zcur, dir)
@@ -652,3 +522,45 @@ subroutine reflect_refract(I, N, n1, n2, iseed, rflag)
     end function fresnel
 
 end module inttau2
+
+
+
+                    ! interpolatedNormal = bary[0] * p1_normal + bary[2] * p2_normal + bary[1] * p3_normal;
+
+                    ! v1 = tarray(tri)%vert(1)
+                    ! v2 = tarray(tri)%vert(2)
+                    ! v3 = tarray(tri)%vert(3)
+
+                    ! p = vector(xcur, ycur, zcur)
+
+                    ! bary = barycentric(v1, v2, v3, p)
+
+                    ! intrpNormal = bary%x * tarray(tri)%norms(1) + bary%y * tarray(tri)%norms(2) + bary%z * tarray(tri)%norms(3) 
+                    ! incd = vector(nxp, nyp, nzp)
+
+                    ! if(in)then
+                    !     intrpNormal = vector(-intrpNormal%x, -intrpNormal%y, -intrpNormal%z)
+                    !     n1 = 1.52
+                    !     n2 = 1.0
+                    ! else
+                    !     n1 = 1.0
+                    !     n2 = 1.52
+                    ! end if
+                    ! call reflect_refract(incd, intrpNormal, n1, n2, iseed, rflag)
+
+                    ! ! print*,nxp,nyp,nzp
+
+                    ! incd = normal(incd)
+                    ! nxp = incd%x
+                    ! nyp = incd%y
+                    ! nzp = incd%z
+
+                    ! phi = atan2(nyp, nxp)
+                    ! sinp = sin(phi)
+                    ! cosp = cos(phi)
+
+                    ! cost = nzp
+                    ! sint = sqrt(1.-cost*cost)
+                    ! ! print*,nxp,nyp,nzp
+                    ! ! stop
+                    ! if(.not.rflag)then

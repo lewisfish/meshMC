@@ -11,5 +11,6 @@ MODULE constants
     real               :: xmax, ymax, zmax
     character(len=10)  :: beam
     character(len=255) :: cwd, homedir, fileplace, resdir
+    logical            :: in
 
 end MODULE constants

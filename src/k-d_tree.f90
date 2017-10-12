@@ -8,17 +8,21 @@ Module kdtree_mod
     type :: node
         integer              :: level
         real                 :: mindim(3), maxdim(3)
-        logical              :: flag=.false.
+        logical              :: isLeaf=.false.
         type(node), pointer  :: ln => null(), rn =>null()
         integer, allocatable :: list(:)
     end type node    
 
+    !defintion of kdtree for program
     type(node) :: kdtree
+
+    public
+    private :: get_bbox
 
     contains
 
         subroutine get_bbox(triarray, mind, maxd)
-
+        ! gets bounding box for list of triangles
             use types,         only : vector
             use triangleclass, only : triangle
             use iarray,        only : tarray
@@ -76,8 +80,8 @@ Module kdtree_mod
             newNode%maxdim = maxdim
             
             !stop tree at depth of 3 and create leafs with data
-            if(depth == 9)then
-                newNode%flag = .true.
+            if(depth == 8)then
+                newNode%isLeaf = .true.
                 allocate(newNode%list(size(trilist)))
                 newNode%list = trilist
             else
@@ -88,7 +92,7 @@ Module kdtree_mod
                 low = mindim(axis)
                 mid = up - diff
 
-                ! print*,low,mid,up,depth
+                ! mid = get_median(trilist, axis)
 
                 !the section is ugly as fuck
                 !gets list of triangles that belong either to left or right
@@ -102,12 +106,12 @@ Module kdtree_mod
                         !right
                         right(i) = trilist(i)
                     else
-                        if(maxdim(axis) >= mid)then
-                            right(i) = trilist(i)
+                        ! if(maxdim(axis) >= mid)then
+                        !     right(i) = trilist(i)
+                        !     left(i) = trilist(i)
+                        ! else
                             left(i) = trilist(i)
-                        else
-                            left(i) = trilist(i)
-                        end if
+                        ! end if
                     end if
                 end do
 
@@ -148,33 +152,99 @@ Module kdtree_mod
         end function buildtree
 
 
-        logical function intersect_bbox(origin, ray, mindim, maxdim)
+        function sort(a)
+            !  return on call the array that is passed, in order from lowest to highest value
+            !  preserves order of array passed in. Slow sort, good for only small arrays
+            !  INPUT:
+            !           a     real    the array that is to be sorted         
+            !
+            !  OUTPUT:  a     real    the sorted array
+            implicit none
 
-            use types, only : vector, swap
+            real, intent(in) :: a(:)
+            real             :: sort(size(a))
+            integer          :: i, minIndex
+            real             :: temp
+
+            sort = a 
+
+            do i = 1, size(sort)
+               minIndex = MINLOC(sort(i:), 1) + i - 1
+               if(sort(i) .gt. sort(minIndex))then
+                  temp = sort(i)
+                  sort(i) = sort(minIndex)
+                  sort(minIndex) = temp
+               end if
+            end do
+
+        end function sort
+
+
+        real function get_median(list, axis)
+
+            use iarray, only : tarray
+
+            implicit none
+
+            integer, intent(IN) :: list(:), axis
+
+            integer :: i,j, counter
+            real    :: array(size(list)*3)
+
+            counter = 1
+
+            do i = 1, size(list)
+                do j = 1, 3
+                    if(axis==1)array(counter) = tarray(list(i))%vert(j)%x
+                    if(axis==2)array(counter) = tarray(list(i))%vert(j)%y
+                    if(axis==3)array(counter) = tarray(list(i))%vert(j)%z
+                    counter = counter + 1
+                end do
+            end do
+
+            if(mod(size(array), 2) == 0)then
+                counter = size(array)/2.
+                if(array(counter+1) == array(counter))then
+                    get_median = array(counter)
+                else
+                    get_median = (array(counter+1) - array(counter))/2.
+                end if
+            else
+                get_median =  array(nint(real(size(array))/2.))
+            end if
+        end function get_median
+
+        logical function intersect_bbox(origin, ray, mindim, maxdim)
+        !   calculates if ray intersects with bounding box
+
+            use types, only : vector, swap, operator(/)
 
             implicit none
 
             type(vector), intent(IN) :: origin, ray
             real, intent(IN) :: mindim(:), maxdim(:)
-
+            type(vector) :: invRay
             real :: tmin, tmax, tymin, tymax, tzmin, tzmax
 
-            if(1./ray%x >= 0)then
-                tmin = (mindim(1) - origin%x) / ray%x
-                tmax = (maxdim(1) - origin%x) / ray%x
+
+            invRay = 1./ray
+
+            if(invRay%x >= 0)then
+                tmin = (mindim(1) - origin%x) * invRay%x
+                tmax = (maxdim(1) - origin%x) * invRay%x
             else
-                tmin = (maxdim(2) - origin%y) / ray%y
-                tmax = (mindim(2) - origin%y) / ray%y
+                tmin = (maxdim(1) - origin%x) * invRay%x
+                tmax = (mindim(1) - origin%x) * invRay%x
             end if
 
             if(tmin > tmax)call swap(tmin, tmax)
 
-            if(1./ray%y >= 0)then
-                tymin = (mindim(2) - origin%y) / ray%y
-                tymax = (maxdim(2) - origin%y) / ray%y
+            if(invRay%y >= 0)then
+                tymin = (mindim(2) - origin%y) * invRay%y
+                tymax = (maxdim(2) - origin%y) * invRay%y
             else
-                tymin = (maxdim(2) - origin%y) / ray%y
-                tymax = (mindim(2) - origin%y) / ray%y
+                tymin = (maxdim(2) - origin%y) * invRay%y
+                tymax = (mindim(2) - origin%y) * invRay%y
             end if
             if(tymin > tymax)call swap(tymin, tymax)
 
@@ -186,12 +256,12 @@ Module kdtree_mod
             if(tymin > tmin)tmin = tymin
             if(tymax < tmax)tmax = tymax
 
-            if(1./ray%z >= 0)then
-                tzmin = (mindim(3) - origin%z) / ray%z
-                tzmax = (maxdim(3) - origin%z) / ray%z
+            if(invRay%z >= 0)then
+                tzmin = (mindim(3) - origin%z) * invRay%z
+                tzmax = (maxdim(3) - origin%z) * invRay%z
             else
-                tzmin = (maxdim(3) - origin%z) / ray%z
-                tzmax = (mindim(3) - origin%z) / ray%z
+                tzmin = (maxdim(3) - origin%z) * invRay%z
+                tzmax = (mindim(3) - origin%z) * invRay%z
             end if
 
             if(tzmin > tzmax)call swap(tzmin, tzmax)
@@ -215,12 +285,12 @@ Module kdtree_mod
 
 
         recursive subroutine write_bbox(tmp, u)
+        !   writes out bounding box for each node
 
             implicit none
 
             integer, intent(INOUT) :: u
             type(node) :: tmp
-
 
             write(u,*) tmp%mindim
             write(u,*) tmp%maxdim(1),tmp%mindim(2),tmp%mindim(3)
@@ -234,64 +304,10 @@ Module kdtree_mod
             write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
             write(u,*) ''
             write(u,*) ''
-            if(.not. tmp%flag)then
+
+            if(.not. tmp%isLeaf)then
                 call write_bbox(tmp%rn, u)
                 call write_bbox(tmp%ln, u)
             end if
-
         end subroutine write_bbox
-
-
 end module kdtree_mod
-! program testing
-
-!     use triangleclass, only : triangle
-!     use obj_reader,    only : read_obj
-!     use types,         only : vector
-!     use kdtree_mod,          only : node, buildTree, tarray
-!     implicit none
-    
-
-!     type(node) :: root
-!     integer :: id = 0, i
-!     integer, allocatable :: listtri(:)
-
-!     call read_obj('res/gourd.obj', tarray, id, .FALSE.)
-
-!     allocate(listtri(size(tarray)))
-
-!     listtri = 0
-
-!     do i = 1, size(tarray)
-!         listtri(i) = i
-!     end do
-
-
-!     root = buildtree(listtri, 0)
-!     print*,root%level
-!     print*,root%mindim
-!     print*,root%maxdim
-!     print*,''
-!     print*,root%ln%level
-!     print*,root%ln%mindim
-!     print*,root%ln%maxdim
-!     print*,''
-!     print*,root%ln%ln%level
-!     print*,root%ln%ln%mindim
-!     print*,root%ln%ln%maxdim
-!     print*,''
-!     print*,root%ln%ln%ln%level
-!     print*,root%ln%ln%ln%mindim
-!     print*,root%ln%ln%ln%maxdim
-!     print*,''
-!     print*,root%ln%ln%ln%ll%level
-!     print*,root%ln%ln%ln%ll%list
-!     print*,''
-!     print*,root%ln%ln%ln%ll%level
-!     print*,root%ln%ln%ln%rl%list
-!     ! call build_tree(tarray, root)
-
-
-
-
-! end program testing

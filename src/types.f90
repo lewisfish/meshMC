@@ -125,7 +125,7 @@ module types
             b = tmp
 
         end subroutine swap_R
-        
+
 
         type(point) function pointSub(a, b)
 

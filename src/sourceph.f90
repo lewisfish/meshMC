@@ -9,18 +9,15 @@ MODULE sourceph_mod
     CONTAINS
         subroutine sourceph(xcell, ycell, zcell, iseed)
 
-            use constants,   only : nxg, nyg, nzg, beam, xmax, ymax, zmax
-            use photon_vars, only : xp, yp, zp, nxp, nyp, nzp, sint, cost, sinp, cosp, phi
+            use constants,   only : nxg, nyg, nzg, xmax, ymax, zmax
+            use photon_vars, only : xp, yp, zp, nxp, nyp, nzp, sint, cost, sinp, cosp
 
             implicit none
 
-            integer,          intent(OUT)   :: xcell, ycell, zcell
-            integer,          intent(INOUT) :: iseed
+            integer, intent(OUT)   :: xcell, ycell, zcell
+            integer, intent(INOUT) :: iseed
 
-            real    :: w, x, y, ran2
-
-
-            call point(x, y, iseed)
+            call point(iseed)
             nxp = sint * cosp  
             nyp = sint * sinp
             nzp = cost
@@ -32,28 +29,28 @@ MODULE sourceph_mod
         end subroutine sourceph
 
 
-        subroutine point(x, y , iseed)
+        subroutine point(iseed)
 
-            use constants,   only : twopi
+            use constants,   only : twopi, in
             use photon_vars, only : xp, yp, zp, phi, cosp, sinp, cost, sint
 
             implicit none
 
-            real,    intent(IN)    :: x, y
             integer, intent(INOUT) :: iseed
 
             real :: ran2
 
-            zp = 1.
+            zp = 0.!1.
             xp = 0.
             yp = 0.
 
-            cost = -1.!2. * ran2(iseed) - 1.
+            cost = 2. * ran2(iseed) - 1.
             sint = sqrt(1. - cost * cost) 
 
             phi = twopi * ran2(iseed)
             cosp = cos(phi)
             sinp = sin(phi)
+            in = .true.
 
         end subroutine point
 
