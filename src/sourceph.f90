@@ -50,7 +50,7 @@ MODULE sourceph_mod
             phi = twopi * ran2(iseed)
             cosp = cos(phi)
             sinp = sin(phi)
-            in = .true.
+            in = .false.
 
         end subroutine point
 

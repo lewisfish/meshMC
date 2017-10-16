@@ -3,4 +3,4 @@
 1.5               ymax
 1.5               zmax
 point             beam
-sphere.obj         meshfile
+fibre.obj         meshfile

@@ -292,18 +292,23 @@ Module kdtree_mod
             integer, intent(INOUT) :: u
             type(node) :: tmp
 
-            write(u,*) tmp%mindim
-            write(u,*) tmp%maxdim(1),tmp%mindim(2),tmp%mindim(3)
-            write(u,*) tmp%maxdim(1),tmp%maxdim(2),tmp%mindim(3)
-            write(u,*) tmp%mindim(1),tmp%maxdim(2),tmp%mindim(3)
-            write(u,*) tmp%mindim
-            write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
-            write(u,*) tmp%maxdim(1),tmp%mindim(2),tmp%maxdim(3)
-            write(u,*) tmp%maxdim(1),tmp%maxdim(2),tmp%maxdim(3)
-            write(u,*) tmp%mindim(1),tmp%maxdim(2),tmp%maxdim(3)
-            write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
-            write(u,*) ''
-            write(u,*) ''
+            write(u,*) 'v', tmp%mindim
+            write(u,*) 'v', tmp%maxdim(1),tmp%mindim(2),tmp%mindim(3)
+            write(u,*) 'v', tmp%maxdim(1),tmp%maxdim(2),tmp%mindim(3)
+            write(u,*) 'v', tmp%mindim(1),tmp%maxdim(2),tmp%mindim(3)
+            write(u,*) 'f ', '1 2 3'
+            write(u,*) 'f ', '1 3 4'
+
+            ! write(u,*) tmp%mindim
+            ! write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
+            ! write(u,*) tmp%maxdim(1),tmp%mindim(2),tmp%maxdim(3)
+            ! write(u,*) tmp%maxdim(1),tmp%maxdim(2),tmp%maxdim(3)
+            ! write(u,*) tmp%mindim(1),tmp%maxdim(2),tmp%maxdim(3)
+            ! write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
+            close(u)
+            stop
+            ! write(u,*) ''
+            ! write(u,*) ''
 
             if(.not. tmp%isLeaf)then
                 call write_bbox(tmp%rn, u)
