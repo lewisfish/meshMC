@@ -59,7 +59,7 @@ program mcpolar
     meshname = adjustl(meshname)
 
     meshfile = trim(meshname)
-    call read_obj(trim(meshfile), tarray, id, .true.)
+    call read_obj(trim(meshfile), tarray, id, .false.)
 
     allocate(listtri(size(tarray)))
 
@@ -69,15 +69,14 @@ program mcpolar
         listtri(j) = j
     end do
 
-    kdtree = buildtree(listtri, 0)
+    kdtree = buildtree(listtri, 0, '0')
 
 
-    open(newunit=u,file='/home/lewis/phdshizz/meshMC/testkd.dat')
+    ! open(newunit=u,file='/home/lewis/phdshizz/meshMC/testkd.obj')
 
-    call write_bbox(kdtree, u)
-    close(u)
+    call write_bbox(kdtree)
 
-    ! stop
+    stop
 
     meshname = trim(meshname(:len_trim(meshname)-4))
 

@@ -348,7 +348,7 @@ module utils
 
             read(u,*)tmp, i
             read(u,*)tmp, i
-            ! read(u,*)tmp, i
+            read(u,*)tmp, i
             
             mem_free = i * 1024_int64 !convert from Kib to b 
         end function mem_free

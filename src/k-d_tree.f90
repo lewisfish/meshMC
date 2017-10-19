@@ -11,6 +11,7 @@ Module kdtree_mod
         logical              :: isLeaf=.false.
         type(node), pointer  :: ln => null(), rn =>null()
         integer, allocatable :: list(:)
+        character(len=:), allocatable :: code
     end type node    
 
     !defintion of kdtree for program
@@ -56,7 +57,7 @@ Module kdtree_mod
         end subroutine get_bbox
 
 
-        recursive function buildTree(trilist, depth) result(tree)
+        recursive function buildTree(trilist, depth, newCode) result(tree)
 
             use triangleclass, only : triangle
             use types,         only : vector
@@ -65,13 +66,15 @@ Module kdtree_mod
 
             type(node) :: tree
             integer, intent(IN)  :: trilist(:), depth
-            
+            character(*) :: newCode
+
             real :: mindim(3), maxdim(3), up, low, mid, diff
             integer, allocatable :: left(:), right(:), leftlst(:), rightlst(:)
             integer :: i, axis, counter
             type(node) :: newNode
 
             newNode%level = depth
+            newNode%code = newCode
 
             axis = mod(depth, 3) + 1 !so account for fortran arrays stating at 1...
 
@@ -80,7 +83,7 @@ Module kdtree_mod
             newNode%maxdim = maxdim
             
             !stop tree at depth of 3 and create leafs with data
-            if(depth == 8)then
+            if(depth == 5)then
                 newNode%isLeaf = .true.
                 allocate(newNode%list(size(trilist)))
                 newNode%list = trilist
@@ -144,8 +147,8 @@ Module kdtree_mod
                 end do
 
                 allocate(newNode%rn, newNode%ln)
-                newNode%rn = buildtree(rightlst, depth + 1)
-                newNode%ln = buildtree(leftlst, depth + 1)
+                newNode%rn = buildtree(rightlst, depth + 1, newNode%code//'0')
+                newNode%ln = buildtree(leftlst, depth + 1, newNode%code//'1')
             end if
 
             tree = newNode
@@ -284,35 +287,54 @@ Module kdtree_mod
         end function intersect_bbox
 
 
-        recursive subroutine write_bbox(tmp, u)
-        !   writes out bounding box for each node
+        recursive subroutine write_bbox(tmp)
+        !   writes out bounding box as a triangluated cube for each node
+
+            use utils, only : str
 
             implicit none
 
-            integer, intent(INOUT) :: u
             type(node) :: tmp
-
-            write(u,*) 'v', tmp%mindim
-            write(u,*) 'v', tmp%maxdim(1),tmp%mindim(2),tmp%mindim(3)
-            write(u,*) 'v', tmp%maxdim(1),tmp%maxdim(2),tmp%mindim(3)
-            write(u,*) 'v', tmp%mindim(1),tmp%maxdim(2),tmp%mindim(3)
-            write(u,*) 'f ', '1 2 3'
-            write(u,*) 'f ', '1 3 4'
-
-            ! write(u,*) tmp%mindim
-            ! write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
-            ! write(u,*) tmp%maxdim(1),tmp%mindim(2),tmp%maxdim(3)
-            ! write(u,*) tmp%maxdim(1),tmp%maxdim(2),tmp%maxdim(3)
-            ! write(u,*) tmp%mindim(1),tmp%maxdim(2),tmp%maxdim(3)
-            ! write(u,*) tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
-            close(u)
-            stop
-            ! write(u,*) ''
-            ! write(u,*) ''
+            integer    :: u
 
             if(.not. tmp%isLeaf)then
-                call write_bbox(tmp%rn, u)
-                call write_bbox(tmp%ln, u)
-            end if
+                call write_bbox(tmp%rn)
+                call write_bbox(tmp%ln)
+            else
+
+                open(newunit=u,file=tmp%code//'.obj')
+
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%mindim
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%maxdim(1),tmp%mindim(2),tmp%mindim(3)
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%maxdim(1),tmp%maxdim(2),tmp%mindim(3)
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%mindim(1),tmp%maxdim(2),tmp%mindim(3)
+
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%mindim(1),tmp%maxdim(2),tmp%maxdim(3)
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%mindim(1),tmp%mindim(2),tmp%maxdim(3)
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%maxdim(1),tmp%mindim(2),tmp%maxdim(3)
+                write(u,'(a,1x,3(f16.13,1x))') 'v', tmp%maxdim(1),tmp%maxdim(2),tmp%maxdim(3)
+
+                !bottom
+                write(u,'(a,1x,a)') 'f ', '1 3 2'!0#
+                write(u,'(a,1x,a)') 'f ', '1 4 3'!1#
+                !top
+                write(u,'(a,1x,a)') 'f ', '6 7 8'!2
+                write(u,'(a,1x,a)') 'f ', '6 8 5'!3
+                !right
+                write(u,'(a,1x,a)') 'f ', '4 5 8'!4
+                write(u,'(a,1x,a)') 'f ', '4 8 3'!5
+                !left
+                write(u,'(a,1x,a)') 'f ', '1 7 6'!6#
+                write(u,'(a,1x,a)') 'f ', '1 2 7'!7#
+                !back
+                write(u,'(a,1x,a)') 'f ', '2 3 8'!8#
+                write(u,'(a,1x,a)') 'f ', '2 8 7'!9
+                !front
+                write(u,'(a,1x,a)') 'f ', '1 6 5'!10
+                write(u,'(a,1x,a)') 'f ', '1 5 4'!11
+                close(u)
+        end if
+
+
         end subroutine write_bbox
 end module kdtree_mod
